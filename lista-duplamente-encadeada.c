@@ -244,7 +244,6 @@ void remocao_no() {
 // onde toda a mágica acontece.
 int main() {
     int entrada;
-    int resposta = 0;
 
     printf("Bem-vindo! Crie seu primeiro nó dando um valor inteiro a ele (CTRL+C PARA SAIR): ");
     scanf("%d", &entrada);
@@ -260,9 +259,9 @@ int main() {
         printf("[4] Listar nós\n");
         printf("[5] Sair\n");
         printf("Resposta: ");
-        scanf("%d", &resposta);
+        scanf("%d", &entrada);
         
-        switch(resposta){
+        switch(entrada){
             case 1: insercao_no(); break;
             case 2: remocao_no(); break;
             case 3: 
