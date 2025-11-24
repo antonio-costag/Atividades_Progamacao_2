@@ -16,8 +16,7 @@ typedef struct estrutura_no_rotulo{
 // a variável global que representa a cabeça (head) da lista
 estrutura_no *cabeca;
 
-int contador_nos() {
-
+int contar_nos() {
     int contador = 0;
     estrutura_no *ponteiro_atual = cabeca;
 
@@ -198,7 +197,7 @@ void listar() {
 // que efetivamente fazem coisas (modo simples do usuário interagir com o programa)
 void insercao_no() {
     
-    int contador = contador_nos();
+    int tamanho_lista = contar_nos();
     int valor;
     int posicao;
 
@@ -206,11 +205,11 @@ void insercao_no() {
     do {
         printf("Insira em qual posição da lista você deseja inserir um nó (Insira uma posição que exista na lista ou a posição imediatamente posterior à última. A lista começa por 1): ");
         scanf("%d", &posicao);
-    } while(posicao < 1 || posicao > contador+1);
+    } while(posicao < 1 || posicao > tamanho_lista+1);
 
     if(posicao == 1){
         inserir_inicio(valor);
-    } else if(posicao == contador+1){
+    } else if(posicao == tamanho_lista+1){
         inserir_final(valor);
     } else {
         inserir_meio(valor, posicao);
@@ -220,18 +219,18 @@ void insercao_no() {
 // outra função wrapper, mas para remoção de nós ao invés de inserção
 void remocao_no() {
 
-    int contador = contador_nos();
+    int tamanho_lista = contar_nos();
     int posicao;
     int entrada;
 
     do {
         printf("Insira a posição do nó que você deseja remover (Insira uma posição que exista na lista. A lista começa por 1): ");
         scanf("%d", &posicao);
-    } while(posicao < 1 || posicao > contador);
+    } while(posicao < 1 || posicao > tamanho_lista);
 
-    if(posicao == 1 && contador > 1){
+    if(posicao == 1 && tamanho_lista > 1){
         remover_no_cabeca();
-    } else if(contador == 1){
+    } else if(tamanho_lista == 1){
         printf("Você está sem nós! Crie um para continuar. Insira seu valor (CTRL+C PARA SAIR): ");
         scanf("%d", &entrada);
         free(cabeca);
