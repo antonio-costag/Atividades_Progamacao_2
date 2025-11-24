@@ -49,12 +49,16 @@ void inserir_inicio(int valor) {
     // cria esse novo nó
     estrutura_no *novo_no = (estrutura_no*) malloc(sizeof(estrutura_no));
 
-    // nem eu sei o que eu fiz aqui, mas tá funcionando (eu acho)
-    novo_no->endereco_posterior = cabeca;
-    cabeca->endereco_anterior = novo_no;
-    novo_no->endereco_anterior = NULL;
-    novo_no->valor = valor;
-    cabeca = novo_no;
+    // para converter o novo nó para a cabeça da lista, a antiga cabeça
+    // deve apontar para o novo nó como seu nó anterior, e o novo nó deve
+    // apontar para a antiga cabeça como seu nó posterior.
+    // com N sendo o novo nó e C sendo a antiga cabeça:
+    novo_no->endereco_posterior = cabeca;   // N --> C
+    cabeca->endereco_anterior = novo_no;    // N <-- C
+    novo_no->endereco_anterior = NULL;      // (NULL) <-- N
+    novo_no->valor = valor;                 // N.valor = valor
+    cabeca = novo_no;                       // cabeça = N
+    // Resultado: (NULL) <-- N <--> C <--> ...
 }
 
 // insere um novo nó no meio de outros nós, não insere nem no início e nem no final
@@ -87,16 +91,25 @@ void inserir_meio(int valor, int posicao) {
 
     estrutura_no *novo_no = (estrutura_no*) malloc(sizeof(estrutura_no));
 
-    // é a inserção mais difícil de entender por ser a com mais mudanças nos ponteiros
-    // anteriores e posteriores, mas faz um esforço que tu entende (ou faz o L)
-    ponteiro_atual->endereco_anterior->endereco_posterior = novo_no;
-    novo_no->endereco_anterior = ponteiro_atual->endereco_anterior;
-    novo_no->endereco_posterior = ponteiro_atual;
-    ponteiro_atual->endereco_anterior = novo_no;
-    novo_no->valor = valor;
+    // para inserir um novo nó no meio da lista, os nós antes e depois do 
+    // novo nó precisam ser modificados para apontar para ele
+    // exemplo, antes:
+    //      A <--> B <--> C <--> D
+    // depois:
+    //      A <--> B <--> N <--> C <--> D
+    
+    // com N sendo o novo nó, P sendo o nó na posição a ser substituida,
+    // PA o ponteiro anterior de P e PP o ponteiro posterior de P:
+    // PA <--> P <--> PP
+    ponteiro_atual->endereco_anterior->endereco_posterior = novo_no;    // PA --> N
+    novo_no->endereco_anterior = ponteiro_atual->endereco_anterior;     // PA <-> N
+    novo_no->endereco_posterior = ponteiro_atual;                       // N --> P
+    ponteiro_atual->endereco_anterior = novo_no;                        // N <-> P
+    novo_no->valor = valor;                                             // N.valor = valor
+    // Resultado: PA <--> N <--> P <--> PP
 }
 
-// insere um novo nó no final da lista, que serve como cauda (cauda é o último elemento da lista)
+// insere um novo nó no final da lista, que serve como cauda (o último elemento da lista)
 void inserir_final(int valor) {
 
     estrutura_no *ponteiro_atual = cabeca;
@@ -107,6 +120,9 @@ void inserir_final(int valor) {
     }
 
     estrutura_no *novo_no = (estrutura_no*) malloc(sizeof(estrutura_no));
+    // o novo nó aponta para a antiga cauda como anterior e a antiga
+    // cauda aponta para o novo nó como posterior. como o novo nó não
+    // aponta para nenhum outro nó como seu posterior, ele vira a nova cauda
     ponteiro_atual->endereco_posterior = novo_no;
     novo_no->endereco_anterior = ponteiro_atual;
     novo_no->endereco_posterior = NULL;
@@ -131,9 +147,10 @@ void remover_no(int posicao) {
         }
     }
 
+    // Para apagar um nó, basta modificar os nós adjacentes para "pular" o nó a ser removido
     ponteiro_atual->endereco_anterior->endereco_posterior = ponteiro_atual->endereco_posterior;
     // esse if é necessário para quando se vai remover o último nó da lista
-    if(ponteiro_atual->endereco_posterior != NULL){
+    if(ponteiro_atual->endereco_posterior != NULL) {
         ponteiro_atual->endereco_posterior->endereco_anterior = ponteiro_atual->endereco_anterior;
     }
 
