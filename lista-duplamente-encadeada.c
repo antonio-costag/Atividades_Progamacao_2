@@ -222,7 +222,7 @@ void remocao_no() {
 
     int contador = contador_nos();
     int posicao;
-    int valor_descartavel;
+    int entrada;
 
     do {
         printf("Insira a posição do nó que você deseja remover (Insira uma posição que exista na lista. A lista começa por 1): ");
@@ -233,9 +233,9 @@ void remocao_no() {
         remover_no_cabeca();
     } else if(contador == 1){
         printf("Você está sem nós! Crie um para continuar. Insira seu valor (CTRL+C PARA SAIR): ");
-        scanf("%d", &valor_descartavel);
+        scanf("%d", &entrada);
         free(cabeca);
-        criar_primeiro_no(valor_descartavel);
+        criar_primeiro_no(entrada);
     } else {
         remover_no(posicao);
     }
@@ -243,12 +243,12 @@ void remocao_no() {
 
 // onde toda a mágica acontece.
 int main() {
-    int valor_descartavel;
+    int entrada;
     int resposta = 0;
 
     printf("Bem-vindo! Crie seu primeiro nó dando um valor inteiro a ele (CTRL+C PARA SAIR): ");
-    scanf("%d", &valor_descartavel);
-    criar_primeiro_no(valor_descartavel);
+    scanf("%d", &entrada);
+    criar_primeiro_no(entrada);
     
     printf("Agora com seu primeiro nó, diga o que quer fazer!\n");
 
@@ -267,8 +267,8 @@ int main() {
             case 2: remocao_no(); break;
             case 3: 
                 printf("Insira o valor que você deseja buscar: ");
-                scanf("%d", &valor_descartavel); 
-                buscar(valor_descartavel); 
+                scanf("%d", &entrada); 
+                buscar(entrada); 
                 break;
             case 4: listar(); break;
             case 5: exit(0); break;
