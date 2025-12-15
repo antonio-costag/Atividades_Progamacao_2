@@ -13,6 +13,7 @@ Uma árvore rubro-negra possui algumas regras:
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 
 #define PRETO 0
 #define VERMELHO 1
@@ -24,6 +25,7 @@ typedef struct Node {
 } Node;
 
 Node* raiz;
+Node* NULO; // valor temporário para simplificar o código de apagar
 
 Node* mknode(int valor, Node* pai) {
     // função para criar nós sem precisar repetir o código de inicialização
@@ -136,7 +138,146 @@ Node* rot_direita(Node* no) {
     return eN;
 }
 
-void escanear_violacao(Node* no) {
+void substituir(Node* u, Node* v) {
+    // Função que substitui u por v na árvore
+    if(u->pai == NULL) {
+        raiz = v;
+    } else if(u->pai->esq == u) {
+        u->pai->esq = v;
+    } else {
+        u->pai->dir = v;
+    }
+    v->pai = u->pai;
+}
+
+void escanear_violacao_apagar(Node* no) {
+    Node* x = no;
+    // Atenção: Múltiplas correções podem ser aplicadas de uma vez
+
+    while(x != raiz && x->cor == PRETO) {
+        // Se o nó atual estiver à esquerda de seu pai...
+        if(x == x->pai->esq) {
+            // ... o irmão do nó atual estará a direita
+            Node* w = x->pai->dir;
+
+            // Se o irmão for vermelho...
+            if(w != NULL && w->cor == VERMELHO) {
+                // ... pintamos o irmão de preto, o pai de vermelho e giramos
+                // à esquerda em torno do pai.
+                w->cor = PRETO;
+                x->pai->cor = PRETO;
+                if(x->pai->pai != NULL) {
+                    // editando os ponteiros do avô para manter a árvore
+                    if(x->pai->pai->esq == x->pai) x->pai->pai->esq = rot_esquerda(x->pai);
+                    else x->pai->pai->dir = rot_esquerda(x->pai);
+                }
+                else if(x->pai == raiz) raiz = rot_esquerda(x->pai);
+                w = x->pai->dir;
+            }
+
+            // Se o irmão tiver filhos pretos...
+            if(w != NULL && (w->esq == NULL || w->esq->cor == PRETO) 
+                && (w->dir == NULL || w->dir->cor == PRETO)) {
+                // ... pintamos o irmão de vermelho e movemos o nó atual para o
+                // pai.
+                w->cor = VERMELHO;
+                if(x->valor == -999) free(x); // removendo o NULO da árvore
+                x = x->pai;
+            }
+
+            // Se o irmão for preto e apenas o filho direito for preto...
+            if(w != NULL && (w->dir == NULL || w->dir->cor == PRETO)) {
+                // ... pintamos o filho esquerdo de preto, o irmão de vermelho
+                // e giramos à direita em torno do irmão.
+                w->esq->cor = PRETO;
+                w->cor = VERMELHO;
+                w->pai->dir = rot_direita(w);
+                w = x->pai->dir;
+            }
+
+            // Em qualquer outro caso (filhos do irmão vermelhos)...
+            if(w != NULL) {
+                // ... o irmão copia a cor do pai, o pai e o filho direito do
+                // irmão são pintados de preto, uma rotação à esquerda é feita
+                // em torno do pai, e x passa a ser a raíz, encerrando o while.
+                w->cor = x->pai->cor;
+                x->pai->cor = PRETO;
+                w->dir->cor = PRETO;
+                if(x->pai->pai != NULL) {
+                    if(x->pai->pai->esq == x->pai) x->pai->pai->esq = rot_esquerda(x->pai);
+                    else x->pai->pai->dir = rot_esquerda(x->pai);
+                } else if(x->pai == raiz) {
+                    raiz = rot_esquerda(x->pai);
+                }
+                x = raiz;
+            }
+        }
+    }
+}
+
+void apagar(Node* no) {
+    Node* x;
+    int cor_original;
+    if(no->esq == NULL) {
+        // Primeiro caso: esquerda nula
+        x = no->dir;
+        cor_original = no->cor;
+        substituir(no, x);
+        free(no);
+    } else if(no->dir == NULL) {
+        // Segundo caso: direita nula
+        x = no->esq;
+        cor_original = no->cor;
+        substituir(no, x);
+        free(no);
+    } else if(no->esq != NULL && no->dir != NULL) {
+        // Terceiro caso: nenhum lado nulo
+        // Usamos o código de apagar da BST normal para encontrar o nó com o
+        // menor valor da subárvore direita
+        Node* minimo = NULL;
+        Node* no_atual = no->dir;
+        while(minimo == NULL) {
+            if(no_atual->esq != NULL) {
+                no_atual = no_atual->esq;
+            } else {
+                minimo = no_atual;
+            }
+        }
+
+        // Se o nó encontrado tiver um filho nulo à direita, copiamos um NULO
+        // para ser usado nas próximas funções
+        if(minimo->dir == NULL) {
+            Node* novo_nulo = malloc(sizeof(Node));
+            memcpy(novo_nulo, NULO, sizeof(Node));
+            minimo->dir = novo_nulo;
+            novo_nulo->pai = minimo;
+        }
+        x = minimo->dir;
+        cor_original = minimo->cor;
+
+        // Substituimos o nó mínimo por seu filho direito...
+        if(minimo->pai == no) {
+            x->pai = minimo;
+        } else {
+            substituir(minimo, x);
+            minimo->dir = no->dir;
+            no->dir->pai = minimo;
+        }
+
+        // e substituimos o nó a ser apagado pelo nó mínimo.
+        substituir(no, minimo);
+        minimo->esq = no->esq;
+        minimo->esq->pai = minimo;
+        minimo->cor = no->cor;
+        free(no);
+    }
+
+    if(cor_original == PRETO) {
+        escanear_violacao_apagar(x);
+    }
+}
+
+void escanear_violacao_inserir(Node* no) {
     // Essa função deverá ser chamada após inserir na árvore.
     Node* Z = no;
 
@@ -251,6 +392,9 @@ void menu_percorrer_arvore(Node* raiz) {
 }
 
 int main() {
+    NULO = mknode(-999, NULL);
+    NULO->cor = PRETO;
+    
     raiz = mknode(-1, NULL);
     raiz->cor = PRETO;
     printf("Insira o valor da raíz: ");
@@ -275,7 +419,7 @@ int main() {
                 printf("Digite o valor (valores repetidos não serão inseridos): ");
                 scanf("%d", &temp);
                 Node* Z = inserir(raiz, temp);
-                escanear_violacao(Z);
+                escanear_violacao_inserir(Z);
                 break;
             case 2:
                 printf("Digite o valor para buscar: ");
@@ -286,6 +430,16 @@ int main() {
                 }
                 else {
                     printf("O valor %d NÃO está na árvore!\n", temp);
+                }
+                break;
+            case 3:
+                printf("Digite o valor para remover: ");
+                scanf("%d", &temp);
+                Node* no_apagar = buscar(raiz, temp);
+                if(no_apagar != NULL) {
+                    apagar(no_apagar);
+                } else {
+                    printf("Este valor não está na árvore!\n");
                 }
                 break;
             case 4:
