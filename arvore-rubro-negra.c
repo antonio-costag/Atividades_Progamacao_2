@@ -12,8 +12,6 @@ Uma árvore rubro-negra possui algumas regras:
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <string.h>
 
 #define PRETO 0
 #define VERMELHO 1
@@ -146,7 +144,8 @@ void seg_rot_direita(Node* no) {
     } else if(no == raiz) {
         raiz = rot_direita(no);
     } else {
-        raise(SIGABRT);
+        printf("ERRO(seg_rot_direita): Pai nulo mas não é raiz??");
+        abort();
     }
 }
 
@@ -158,7 +157,8 @@ void seg_rot_esquerda(Node* no) {
     } else if(no == raiz) {
         raiz = rot_esquerda(no);
     } else {
-        raise(SIGABRT);
+        printf("ERRO(seg_rot_esquerda): Pai nulo mas não é raiz??");
+        abort();
     }
 }
 
@@ -181,7 +181,6 @@ void escanear_violacao_apagar(Node* no) {
     while(x != raiz && x->cor == PRETO) {
         // Se o nó atual estiver à esquerda de seu pai, e...
         if(x == x->pai->esq) {
-            // O irmão do nó atual estará a direita
             Node* irmao = x->pai->dir;
 
             // ... o irmão do nó substituto é vermelho...
@@ -223,8 +222,7 @@ void escanear_violacao_apagar(Node* no) {
                 seg_rot_esquerda(irmao->pai);
                 x = raiz;
             }
-        } else {
-            // O irmão do nó atual estará a esquerda
+        } else {  // Se o nó atual estiver à direita de seu pai, e...
             Node* irmao = x->pai->esq;
 
             // ... o irmão do nó substituto é vermelho...
@@ -301,14 +299,6 @@ void apagar(Node* no) {
             }
         }
 
-        // Se o nó encontrado tiver um filho nulo à direita, copiamos um NULO
-        // para ser usado nas próximas funções
-        //if(minimo->dir == N_NULO) {
-        //    Node* novo_nulo = malloc(sizeof(Node));
-        //    memcpy(novo_nulo, N_NULO, sizeof(Node));
-        //    minimo->dir = novo_nulo;
-        //    novo_nulo->pai = minimo;
-        //}
         x = minimo->dir;
         cor_original = minimo->cor;
 
@@ -366,18 +356,6 @@ void escanear_violacao_inserir(Node* no) {
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
                 seg_rot_direita(avo);
-                /*
-                if(avo->pai != NULL) {
-                    if(avo->pai->dir == avo) avo->pai->dir = rot_direita(avo);
-                    else if(avo->pai->esq == avo) avo->pai->esq = rot_direita(avo);
-                    else raise(SIGINT);
-                } else if(avo == raiz) {
-                    raiz = rot_direita(avo);
-                } else {
-                    // Se o avô não tem pai e não é a raíz, tem algo de errado!
-                    raise(SIGINT);
-                }
-                    */
             }
         } else {
             // Mesmas etapas, com as direções invertidas
@@ -398,17 +376,6 @@ void escanear_violacao_inserir(Node* no) {
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
                 seg_rot_esquerda(avo);
-                /*
-                if(avo->pai != NULL) {
-                    if(avo->pai->esq == avo) avo->pai->esq = rot_esquerda(avo);
-                    else if(avo->pai->dir == avo) avo->pai->dir = rot_esquerda(avo);
-                    else raise(SIGABRT);
-                } else if(avo == raiz) {
-                    raiz = rot_esquerda(avo);
-                } else {
-                    // Se o avô não tem pai e não é a raíz, tem algo de errado!
-                    raise(SIGABRT);
-                }*/
             }
         }
     }
@@ -469,7 +436,6 @@ int main() {
         printf("2 - Buscar valor\n");
         printf("3 - Remover valor\n");
         printf("4 - Percorrer árvore\n");
-        printf("5 - Girar nó\n");
         printf("0 - Sair\n");
 
         printf("Sua escolha: ");
