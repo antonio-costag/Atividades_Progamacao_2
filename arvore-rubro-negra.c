@@ -447,6 +447,11 @@ int main() {
             case 1:
                 printf("Digite o valor (valores repetidos não serão inseridos): ");
                 scanf("%d", &temp);
+                Node* no_teste_ins = buscar(raiz, temp);
+                if(no_teste_ins != NULL) {
+                    printf("O valor %d já está na árvore!\n", temp);
+                    break;
+                }
                 Node* Z = inserir(raiz, temp);
                 escanear_violacao_inserir(Z);
                 break;
