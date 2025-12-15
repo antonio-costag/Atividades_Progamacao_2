@@ -25,13 +25,13 @@ typedef struct Node {
 } Node;
 
 Node* raiz;
-Node* NULO; // valor temporário para simplificar o código de apagar
+Node* N_NULO; // valor temporário para simplificar o código de apagar
 
 Node* mknode(int valor, Node* pai) {
     // função para criar nós sem precisar repetir o código de inicialização
     Node* novo_no = malloc(sizeof(Node));
-    novo_no->dir = NULL;
-    novo_no->esq = NULL;
+    novo_no->dir = N_NULO;
+    novo_no->esq = N_NULO;
     novo_no->pai = pai;
     novo_no->valor = valor;
     novo_no->cor = VERMELHO;
@@ -49,7 +49,7 @@ Node* inserir(Node* raiz, int valor) {
     // OBS: essa implementação ignora valores repetidos.
     if(valor > raiz->valor) {
         // verificar se a direita já está ocupada
-        if(raiz->dir != NULL) return inserir(raiz->dir, valor);
+        if(raiz->dir != N_NULO) return inserir(raiz->dir, valor);
         
         // novo nó tem um valor maior que o pai -> novo nó vai pra direita
         Node* n = mknode(valor, raiz);
@@ -57,7 +57,7 @@ Node* inserir(Node* raiz, int valor) {
         return n;
     } else if(valor < raiz->valor) {
         // verificar se a esquerda já está ocupada
-        if(raiz->esq != NULL) return inserir(raiz->esq, valor);
+        if(raiz->esq != N_NULO) return inserir(raiz->esq, valor);
 
         // novo nó tem um valor menor que o pai -> novo nó vai pra esquerda
         Node* n = mknode(valor, raiz);
@@ -74,9 +74,9 @@ Node* buscar(Node* raiz, int valor) {
     // buscado
     if(valor == raiz->valor) {
         return raiz;
-    } else if(valor > raiz->valor && raiz->dir != NULL) {
+    } else if(valor > raiz->valor && raiz->dir != N_NULO) {
         return buscar(raiz->dir, valor);
-    } else if(valor < raiz->valor && raiz->esq != NULL) {
+    } else if(valor < raiz->valor && raiz->esq != N_NULO) {
         return buscar(raiz->esq, valor);
     }
     return NULL;
@@ -85,21 +85,21 @@ Node* buscar(Node* raiz, int valor) {
 void print_preordem(Node* raiz) {
     // ordem: raíz, esquerda, direita
     printf("(%d)%d ", raiz->cor, raiz->valor);
-    if(raiz->esq != NULL) print_preordem(raiz->esq);
-    if(raiz->dir != NULL) print_preordem(raiz->dir);
+    if(raiz->esq != N_NULO) print_preordem(raiz->esq);
+    if(raiz->dir != N_NULO) print_preordem(raiz->dir);
 }
 
 void print_ordem(Node* raiz) {
     // ordem: esquerda, raíz, direita
-    if(raiz->esq != NULL) print_ordem(raiz->esq);
+    if(raiz->esq != N_NULO) print_ordem(raiz->esq);
     printf("(%d)%d ", raiz->cor, raiz->valor);
-    if(raiz->dir != NULL) print_ordem(raiz->dir);
+    if(raiz->dir != N_NULO) print_ordem(raiz->dir);
 }
 
 void print_posordem(Node* raiz) {
     // ordem: esquerda, direita, raíz
-    if(raiz->esq != NULL) print_posordem(raiz->esq);
-    if(raiz->dir != NULL) print_posordem(raiz->dir);
+    if(raiz->esq != N_NULO) print_posordem(raiz->esq);
+    if(raiz->dir != N_NULO) print_posordem(raiz->dir);
     printf("(%d)%d ", raiz->cor, raiz->valor);
 }
 
@@ -138,9 +138,33 @@ Node* rot_direita(Node* no) {
     return eN;
 }
 
+void seg_rot_direita(Node* no) {
+    // versão da rotação à direita que lida com a conexão ao pai
+    if(no->pai != N_NULO) {
+        if(no->pai->esq == no) no->pai->esq = rot_direita(no);
+        else no->pai->dir = rot_direita(no);
+    } else if(no == raiz) {
+        raiz = rot_direita(no);
+    } else {
+        raise(SIGABRT);
+    }
+}
+
+void seg_rot_esquerda(Node* no) {
+    // versão da rotação à esquerda que lida com a conexão ao pai
+    if(no->pai != N_NULO && no->pai != NULL) {
+        if(no->pai->esq == no) no->pai->esq = rot_esquerda(no);
+        else no->pai->dir = rot_esquerda(no);
+    } else if(no == raiz) {
+        raiz = rot_esquerda(no);
+    } else {
+        raise(SIGABRT);
+    }
+}
+
 void substituir(Node* u, Node* v) {
     // Função que substitui u por v na árvore
-    if(u->pai == NULL) {
+    if(u->pai == N_NULO) {
         raiz = v;
     } else if(u->pai->esq == u) {
         u->pai->esq = v;
@@ -155,89 +179,122 @@ void escanear_violacao_apagar(Node* no) {
     // Atenção: Múltiplas correções podem ser aplicadas de uma vez
 
     while(x != raiz && x->cor == PRETO) {
-        // Se o nó atual estiver à esquerda de seu pai...
+        // Se o nó atual estiver à esquerda de seu pai, e...
         if(x == x->pai->esq) {
-            // ... o irmão do nó atual estará a direita
-            Node* w = x->pai->dir;
+            // O irmão do nó atual estará a direita
+            Node* irmao = x->pai->dir;
 
-            // Se o irmão for vermelho...
-            if(w != NULL && w->cor == VERMELHO) {
+            // ... o irmão do nó substituto é vermelho...
+            if(irmao->cor == VERMELHO) {
                 // ... pintamos o irmão de preto, o pai de vermelho e giramos
-                // à esquerda em torno do pai.
-                w->cor = PRETO;
-                x->pai->cor = PRETO;
-                if(x->pai->pai != NULL) {
-                    // editando os ponteiros do avô para manter a árvore
-                    if(x->pai->pai->esq == x->pai) x->pai->pai->esq = rot_esquerda(x->pai);
-                    else x->pai->pai->dir = rot_esquerda(x->pai);
-                }
-                else if(x->pai == raiz) raiz = rot_esquerda(x->pai);
-                w = x->pai->dir;
+                // para a direita no pai
+                irmao->cor = PRETO;
+                x->pai->cor = VERMELHO;
+                seg_rot_esquerda(x->pai);
+                irmao = x->pai->dir;
             }
 
-            // Se o irmão tiver filhos pretos...
-            if(w != NULL && (w->esq == NULL || w->esq->cor == PRETO) 
-                && (w->dir == NULL || w->dir->cor == PRETO)) {
-                // ... pintamos o irmão de vermelho e movemos o nó atual para o
-                // pai.
-                w->cor = VERMELHO;
-                if(x->valor == -999) free(x); // removendo o NULO da árvore
+            // ... o irmão e seus filhos são pretos...
+            if(irmao->esq->cor == PRETO && irmao->dir->cor == PRETO) {
+                // ... pintamos o irmão de vermelho e mudamos x para o pai
+                irmao->cor = VERMELHO;
                 x = x->pai;
             }
 
-            // Se o irmão for preto e apenas o filho direito for preto...
-            if(w != NULL && (w->dir == NULL || w->dir->cor == PRETO)) {
-                // ... pintamos o filho esquerdo de preto, o irmão de vermelho
-                // e giramos à direita em torno do irmão.
-                w->esq->cor = PRETO;
-                w->cor = VERMELHO;
-                w->pai->dir = rot_direita(w);
-                w = x->pai->dir;
+            // ... o irmão e seu filho direito são pretos, mas o filho esquerdo é vermelho...
+            if(irmao->esq->cor == VERMELHO && irmao->dir->cor == PRETO) {
+                // ... pintamos o filho esquerdo de preto, o irmão de vermelho e
+                // giramos para a direita no irmão
+                irmao->esq->cor = PRETO;
+                irmao->cor = VERMELHO;
+                seg_rot_direita(irmao);
+                //irmao = x->pai->dir;
+                irmao = irmao->pai;
             }
 
-            // Em qualquer outro caso (filhos do irmão vermelhos)...
-            if(w != NULL) {
-                // ... o irmão copia a cor do pai, o pai e o filho direito do
-                // irmão são pintados de preto, uma rotação à esquerda é feita
-                // em torno do pai, e x passa a ser a raíz, encerrando o while.
-                w->cor = x->pai->cor;
-                x->pai->cor = PRETO;
-                w->dir->cor = PRETO;
-                if(x->pai->pai != NULL) {
-                    if(x->pai->pai->esq == x->pai) x->pai->pai->esq = rot_esquerda(x->pai);
-                    else x->pai->pai->dir = rot_esquerda(x->pai);
-                } else if(x->pai == raiz) {
-                    raiz = rot_esquerda(x->pai);
-                }
+            // ... o filho direito do irmão é vermelho...
+            if(irmao->dir->cor == VERMELHO) {
+                // ... pintamos o irmão da mesma cor do pai, o pai de preto,
+                // o filho direito do irmão de preto, e giramos para a esquerda
+                // no pai
+                irmao->cor = irmao->pai->cor;
+                irmao->pai->cor = PRETO;
+                irmao->dir->cor = PRETO;
+                seg_rot_esquerda(irmao->pai);
+                x = raiz;
+            }
+        } else {
+            // O irmão do nó atual estará a esquerda
+            Node* irmao = x->pai->esq;
+
+            // ... o irmão do nó substituto é vermelho...
+            if(irmao->cor == VERMELHO) {
+                // ... pintamos o irmão de preto, o pai de vermelho e giramos
+                // para a direita no pai
+                irmao->cor = PRETO;
+                x->pai->cor = VERMELHO;
+                seg_rot_direita(x->pai);
+                irmao = x->pai->esq;
+            }
+
+            // ... o irmão e seus filhos são pretos...
+            if(irmao->esq->cor == PRETO && irmao->dir->cor == PRETO) {
+                // ... pintamos o irmão de vermelho e mudamos x para o pai
+                irmao->cor = VERMELHO;
+                x = x->pai;
+            }
+
+            // ... o irmão e seu filho esquerdo são pretos, mas o filho direito é vermelho...
+            if(irmao->dir->cor == VERMELHO && irmao->esq->cor == PRETO) {
+                // ... pintamos o filho direito de preto, o irmão de vermelho e
+                // giramos para a esquerda no irmão
+                irmao->dir->cor = PRETO;
+                irmao->cor = VERMELHO;
+                seg_rot_esquerda(irmao);
+                //irmao = x->pai->dir;
+                irmao = irmao->pai;
+            }
+
+            // ... o filho esquerdo do irmão é vermelho...
+            if(irmao->esq->cor == VERMELHO) {
+                // ... pintamos o irmão da mesma cor do pai, o pai de preto,
+                // o filho esquerdo do irmão de preto, e giramos para a direita
+                // no pai
+                irmao->cor = irmao->pai->cor;
+                irmao->pai->cor = PRETO;
+                irmao->esq->cor = PRETO;
+                seg_rot_direita(irmao->pai);
                 x = raiz;
             }
         }
     }
+    x->cor = PRETO;
+    if(x == N_NULO) x->pai = NULL;
 }
 
 void apagar(Node* no) {
     Node* x;
     int cor_original;
-    if(no->esq == NULL) {
+    if(no->esq == N_NULO) {
         // Primeiro caso: esquerda nula
         x = no->dir;
         cor_original = no->cor;
         substituir(no, x);
-        free(no);
-    } else if(no->dir == NULL) {
+        if(x != N_NULO) free(no);
+    } else if(no->dir == N_NULO) {
         // Segundo caso: direita nula
         x = no->esq;
         cor_original = no->cor;
         substituir(no, x);
-        free(no);
-    } else if(no->esq != NULL && no->dir != NULL) {
+        if(x != N_NULO) free(no);
+    } else {
         // Terceiro caso: nenhum lado nulo
         // Usamos o código de apagar da BST normal para encontrar o nó com o
         // menor valor da subárvore direita
-        Node* minimo = NULL;
+        Node* minimo = N_NULO;
         Node* no_atual = no->dir;
-        while(minimo == NULL) {
-            if(no_atual->esq != NULL) {
+        while(minimo == N_NULO) {
+            if(no_atual->esq != N_NULO) {
                 no_atual = no_atual->esq;
             } else {
                 minimo = no_atual;
@@ -246,12 +303,12 @@ void apagar(Node* no) {
 
         // Se o nó encontrado tiver um filho nulo à direita, copiamos um NULO
         // para ser usado nas próximas funções
-        if(minimo->dir == NULL) {
-            Node* novo_nulo = malloc(sizeof(Node));
-            memcpy(novo_nulo, NULO, sizeof(Node));
-            minimo->dir = novo_nulo;
-            novo_nulo->pai = minimo;
-        }
+        //if(minimo->dir == N_NULO) {
+        //    Node* novo_nulo = malloc(sizeof(Node));
+        //    memcpy(novo_nulo, N_NULO, sizeof(Node));
+        //    minimo->dir = novo_nulo;
+        //    novo_nulo->pai = minimo;
+        //}
         x = minimo->dir;
         cor_original = minimo->cor;
 
@@ -269,7 +326,7 @@ void apagar(Node* no) {
         minimo->esq = no->esq;
         minimo->esq->pai = minimo;
         minimo->cor = no->cor;
-        free(no);
+        if(x != N_NULO) free(no);
     }
 
     if(cor_original == PRETO) {
@@ -282,13 +339,13 @@ void escanear_violacao_inserir(Node* no) {
     Node* Z = no;
 
     // Se o novo nó causar uma violação do tipo dois vermelhos consecutivos...
-    while(Z != raiz && Z->pai != NULL && Z->pai->cor == VERMELHO) {
+    while(Z != raiz && Z->pai != N_NULO && Z->pai->cor == VERMELHO) {
         Node* pai = Z->pai;
         Node* avo = pai->pai;
         if(pai == avo->esq) {
             Node* tio = avo->dir;
             // ... e o tio for vermelho, trocamos as cores do pai, avô e tio
-            if(tio != NULL && tio->cor == VERMELHO) {
+            if(tio->cor == VERMELHO) {
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
                 tio->cor = PRETO;
@@ -308,6 +365,8 @@ void escanear_violacao_inserir(Node* no) {
                 }
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
+                seg_rot_direita(avo);
+                /*
                 if(avo->pai != NULL) {
                     if(avo->pai->dir == avo) avo->pai->dir = rot_direita(avo);
                     else if(avo->pai->esq == avo) avo->pai->esq = rot_direita(avo);
@@ -318,12 +377,13 @@ void escanear_violacao_inserir(Node* no) {
                     // Se o avô não tem pai e não é a raíz, tem algo de errado!
                     raise(SIGINT);
                 }
+                    */
             }
         } else {
             // Mesmas etapas, com as direções invertidas
             // O pai está a direita do avô
             Node* tio = avo->esq;
-            if(tio != NULL && tio->cor == VERMELHO) {
+            if(tio->cor == VERMELHO) {
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
                 tio->cor = PRETO;
@@ -337,6 +397,8 @@ void escanear_violacao_inserir(Node* no) {
                 }
                 pai->cor = PRETO;
                 avo->cor = VERMELHO;
+                seg_rot_esquerda(avo);
+                /*
                 if(avo->pai != NULL) {
                     if(avo->pai->esq == avo) avo->pai->esq = rot_esquerda(avo);
                     else if(avo->pai->dir == avo) avo->pai->dir = rot_esquerda(avo);
@@ -346,7 +408,7 @@ void escanear_violacao_inserir(Node* no) {
                 } else {
                     // Se o avô não tem pai e não é a raíz, tem algo de errado!
                     raise(SIGABRT);
-                }
+                }*/
             }
         }
     }
@@ -356,8 +418,8 @@ void escanear_violacao_inserir(Node* no) {
 void liberar(Node* raiz) {
     // liberamos recursivamente os nós como se estivessemos printando em
     // pós-ordem
-    if(raiz->esq != NULL) liberar(raiz->esq);
-    if(raiz->dir != NULL) liberar(raiz->dir);
+    if(raiz->esq != N_NULO) liberar(raiz->esq);
+    if(raiz->dir != N_NULO) liberar(raiz->dir);
     free(raiz);
 }
 
@@ -392,10 +454,10 @@ void menu_percorrer_arvore(Node* raiz) {
 }
 
 int main() {
-    NULO = mknode(-999, NULL);
-    NULO->cor = PRETO;
+    N_NULO = mknode(-999, NULL);
+    N_NULO->cor = PRETO;
     
-    raiz = mknode(-1, NULL);
+    raiz = mknode(-1, N_NULO);
     raiz->cor = PRETO;
     printf("Insira o valor da raíz: ");
     scanf("%d", &raiz->valor);
