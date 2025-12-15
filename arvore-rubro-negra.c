@@ -82,7 +82,7 @@ Node* buscar(Node* raiz, int valor) {
 
 void print_preordem(Node* raiz) {
     // ordem: raíz, esquerda, direita
-    printf("(%d)%d ", raiz->cor, raiz->valor);
+    printf("%s%d ", raiz->cor == 1 ? "[V]" : "[P]", raiz->valor);
     if(raiz->esq != N_NULO) print_preordem(raiz->esq);
     if(raiz->dir != N_NULO) print_preordem(raiz->dir);
 }
@@ -90,7 +90,7 @@ void print_preordem(Node* raiz) {
 void print_ordem(Node* raiz) {
     // ordem: esquerda, raíz, direita
     if(raiz->esq != N_NULO) print_ordem(raiz->esq);
-    printf("(%d)%d ", raiz->cor, raiz->valor);
+    printf("%s%d ", raiz->cor == 1 ? "[V]" : "[P]", raiz->valor);
     if(raiz->dir != N_NULO) print_ordem(raiz->dir);
 }
 
@@ -98,7 +98,7 @@ void print_posordem(Node* raiz) {
     // ordem: esquerda, direita, raíz
     if(raiz->esq != N_NULO) print_posordem(raiz->esq);
     if(raiz->dir != N_NULO) print_posordem(raiz->dir);
-    printf("(%d)%d ", raiz->cor, raiz->valor);
+    printf("%s%d ", raiz->cor == 1 ? "[V]" : "[P]", raiz->valor);
 }
 
 Node* rot_esquerda(Node* no) {
@@ -400,6 +400,7 @@ void menu_percorrer_arvore(Node* raiz) {
         printf("Sua escolha: ");
         scanf("%d", &temp);
 
+        printf("([P] = preto, [V] = vermelho) ");
         switch(temp) {
             case 1:
                 printf("Visualização em pré-ordem: ");
