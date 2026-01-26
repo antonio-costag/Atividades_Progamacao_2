@@ -263,7 +263,7 @@ int main(){
     Imprimir(cabeca->folha[0]);
     Imprimir(cabeca->folha[1]);
     
-    printf("\nNetos do 50: ");
+    printf("\nNetos do 60: ");
     Imprimir(cabeca->folha[1]->folha[0]);
     Imprimir(cabeca->folha[1]->folha[1]);
     
