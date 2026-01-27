@@ -10,7 +10,7 @@ typedef struct no
     struct no *filho[4]; // Ponteiros para os filhos
 } No;
 
-No *cabeca;
+No *raiz;
 
 // Iniciação basica dos ponteiros do meu no
 void IniciarFolhas(No *atual_no){
@@ -22,18 +22,26 @@ void IniciarFolhas(No *atual_no){
 // Essa função garante que se meus valores estão como [30, 10], eles passem a ser [10, 30]
 // Isso é vital para facilitar a organização da minha árvore
 void OrdenarNo(No *atual_no){
-    int valor_temp;
-    // Usamos numero_valores para ordenar apenas o que existe de fato
+    int atual, j;
+    // Usamos numero_valores para ordenar apenas o que existe de fato, através do algoritmo Insertion Sort
     // Garante que não estamos comparando com o lixo das posições vazias
     // (o lixo sempre fica no fical e a ordenação não chega neles)
-    for(int i = 0; i < atual_no->numero_valores - 1; i++){
-        for(int j = i + 1; j < atual_no->numero_valores; j++){
-            if(atual_no->valor[j] < atual_no->valor[i]){
-                valor_temp = atual_no->valor[i];
-                atual_no->valor[i] = atual_no->valor[j];
-                atual_no->valor[j] = valor_temp;
+     for(int i = 1; i < atual_no->numero_valores; i++){
+        // Número que está sendo comparado atualmente é salvo na variável "atual"
+        atual = atual_no->valor[i];
+        
+        // j começa com um índice a menos que i e vai sendo reduzida até o índice 0
+        for(j = i - 1; j >= 0; j--){
+            // Se o número atual for menor que um número anterior, o número anterior é gravado 1 índice para frente
+            if(atual < atual_no->valor[j]){
+                atual_no->valor[j+1] = atual_no->valor[j];
+            } else{
+                break;
             }
         }
+
+        // A posição posterior ao último j recebe o valor do número atual
+        atual_no->valor[j+1] = atual;
     }
 }
 
@@ -171,28 +179,28 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
 
 void Adicionar(int valor){
     // Se a arvore não existe a gente cria ela
-    if(cabeca == NULL){
-        cabeca = CriarNo(valor);
+    if(raiz == NULL){
+        raiz = CriarNo(valor);
     }
 
     //
     else{
         // Aqui prosseguimos se a raiz já existe
         int valor_promovido;
-        No* novo_no = Inserir(cabeca, valor, &valor_promovido);
+        No* novo_no = Inserir(raiz, valor, &valor_promovido);
 
         // A própria raiz atual transbordou
         // Então criamos uma nova raiz acima da antiga.
         if(novo_no != NULL){
             // Salvamos a raiz atual
-            No* antiga_raiz = cabeca;
+            No* antiga_raiz = raiz;
 
             // Criamos uma nova raiz com o valor que subiu (o meio)
-            cabeca = CriarNo(valor_promovido);
+            raiz = CriarNo(valor_promovido);
 
             // Conectamos os filhos da nova raiz
-            cabeca->filho[0] = antiga_raiz;
-            cabeca->filho[1] = novo_no;
+            raiz->filho[0] = antiga_raiz;
+            raiz->filho[1] = novo_no;
         }
     }
 }
@@ -387,20 +395,20 @@ bool RemoverRecursivo(No *no, int valor) {
 }
 
 void Remover(int valor) {
-    if (cabeca == NULL) return;
+    if (raiz == NULL) return;
 
-    bool raiz_zerada = RemoverRecursivo(cabeca, valor);
+    bool raiz_zerada = RemoverRecursivo(raiz, valor);
 
     // Se a raiz ficou vazia após o processo (Underflow na raiz)
-    if (raiz_zerada && cabeca->numero_valores == 0) {
-        No *temp = cabeca;
+    if (raiz_zerada && raiz->numero_valores == 0) {
+        No *temp = raiz;
         
         // Se a raiz ainda tem filhos (caso do Merge que puxou a raiz pra baixo),
         // o primeiro filho vira a nova raiz.
-        if (!EhFolha(cabeca)) {
-            cabeca = cabeca->filho[0];
+        if (!EhFolha(raiz)) {
+            raiz = raiz->filho[0];
         } else {
-            cabeca = NULL; // Árvore ficou vazia
+            raiz = NULL; // Árvore ficou vazia
         }
         free(temp);
     }
@@ -466,33 +474,66 @@ void PorNivel(No *raiz) {
 
     // Para cada andar (do 0 até a altura máxima), mandamos imprimir
     for (int i = 0; i <= altura; i++) {
-        printf("\nNivel %d: ", i); // Opcional: Mostra qual é o nível
+        printf("Nivel %d: ", i); // Mostra qual é o nível
         ImprimirAndar(raiz, 0, i);
+        printf("\n");
     }
 }
 
 int main(){
-    // Reinicia a árvore
-    cabeca = NULL; 
-    
-    int valores[] = {80, 40, 120, 20, 60, 100, 140, 15, 10, 50, 30, 90, 70, 150, 130, 110};
+    raiz = NULL; // A raíz começa nula
+    int escolha; // Variável usada para a escolha no menu
+    int valor; // Valor a ser inserido/removido/buscado na árvore
 
-    for(int i=0; i<16; i++) {
-        Adicionar(valores[i]);
+    while(true){
+        printf("Escolha a operação que você quer fazer\n[1] Inserir\n[2] Remover\n[3] Buscar\n[4] Travessia\n[5] Sair\nResposta: ");
+        scanf("%d", &escolha);
+
+        // Caso a raíz seja nula, as únicas operações que o usuario pode realizar são Inserir ou Sair
+        if(raiz == NULL && escolha != 1 && escolha != 5){
+            printf("Você precisa inserir uma raíz primeiro!\n");
+        } else{
+            switch(escolha){
+                case 1:
+                    printf("Insira o valor que você quer inserir: ");
+                    scanf("%d", &valor);
+                    Adicionar(valor);
+                    break;
+                case 2:
+                    printf("Insira o valor que você quer remover: ");
+                    scanf("%d", &valor);
+                    Remover(valor);
+                    break;
+                case 3:
+                    printf("Insira o valor que você quer buscar: ");
+                    scanf("%d", &valor);
+                    ImprimirBusca(raiz, valor);
+                    break;
+                case 4:
+                    printf("Insira que tipo de travessia você quer fazer\n[1] Ordem crescente\n[2] Por nível\nResposta: ");
+                    scanf("%d", &escolha);
+                    if(escolha == 1){
+                        printf("Lista ordenada: ");
+                        EmOrdem(raiz);
+                        printf("\n");
+                    } else if(escolha == 2){
+                        printf("Travessia por nível: \n");
+                        PorNivel(raiz);
+                    } else{
+                        printf("Escolha uma opção válida!\n");
+                    }
+                    break;
+                case 5:
+                    // Caso o usuário opte por encerrar o programa, ele retorna com código 0, indicando finalização normal
+                    return 0;
+                default:
+                    // Caso o usuário não tenha inserido um número entre 1 e 5 a opção dele é inválida
+                    printf("Escolha uma opção válida!\n");
+                    break;
+            }
+        }
+        printf("\n"); // Quebra de linha para manter a organização textual coerente, separada em blocos
     }
-    ImprimirBusca(cabeca, 200);
 
-    Remover(80);
-    Remover(60);
-    Remover(2);
-
-    printf("\n\nLista Ordenada: ");
-    EmOrdem(cabeca);
-    printf("\n");
-
-    printf("\n\nTravessia Por Nivel: \n");
-    PorNivel(cabeca);
-    printf("\n");
-    
     return 0;
 }
