@@ -2,41 +2,34 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-//definindo a estrutura dos meus nós
+// Definindo a estrutura dos meus nós
 typedef struct no
 {
-    int valor[3]; // usando um vetor para facilitar a ordenação dos valore, espaço extra pra faculitar o "overflow"
+    int valor[3]; // Usando um vetor para facilitar a ordenação dos valores, espaço extra pra facilitar o "overflow"
     int numero_valores; // Diz se tem 1 ou 2 valores (ou 3 temporariamente)
-    struct no *folha[4]; //ponteiros para os fihos
+    struct no *filho[4]; // Ponteiros para os filhos
 } No;
 
 No *cabeca;
- 
-//aqui eu coloco lixo "-1" nos valores no meu nó pra preencher espaço
-void IniciarValoresNo(No *atual_no){
-    for(int i = 0; i < 3; i++){
-        atual_no->valor[i] = -1;
-    }
-}
 
-//iniciação basica dos ponteiros do meu no
+// Iniciação basica dos ponteiros do meu no
 void IniciarFolhas(No *atual_no){
     for(int i = 0; i < 4; i++){
-        atual_no->folha[i] = NULL;
+        atual_no->filho[i] = NULL;
     }
 }
 
-//essa função garante que se meus valores estão como [30, 10], eles passem a ser [10, 30]
-//isso é vital para facilitar a organização da minha arvore
+// Essa função garante que se meus valores estão como [30, 10], eles passem a ser [10, 30]
+// Isso é vital para facilitar a organização da minha árvore
 void OrdenarNo(No *atual_no){
+    int valor_temp;
     // Usamos numero_valores para ordenar apenas o que existe de fato
-    // Garante que não estamos comparando com o lixo "-1" das posições vazias
-    //(o lixo sempre fica no fical e a ordenação não chega neles)
+    // Garante que não estamos comparando com o lixo das posições vazias
+    // (o lixo sempre fica no fical e a ordenação não chega neles)
     for(int i = 0; i < atual_no->numero_valores - 1; i++){
         for(int j = i + 1; j < atual_no->numero_valores; j++){
             if(atual_no->valor[j] < atual_no->valor[i]){
-                int valor_temp = atual_no->valor[i];
-
+                valor_temp = atual_no->valor[i];
                 atual_no->valor[i] = atual_no->valor[j];
                 atual_no->valor[j] = valor_temp;
             }
@@ -44,10 +37,10 @@ void OrdenarNo(No *atual_no){
     }
 }
 
-//Se o primeiro ponteiro for nulo, todos são
-//a Arvore 2-3 sempre vai ser perfeitamente balaceda em altura
+// Se o primeiro ponteiro for nulo, todos são
+// A Árvore 2-3 sempre vai ser perfeitamente balaceda em altura
 bool EhFolha(No* atual_no) {
-    if(atual_no->folha[0] == NULL){
+    if(atual_no->filho[0] == NULL){
         return true;
     }
     else{
@@ -55,11 +48,10 @@ bool EhFolha(No* atual_no) {
     }
 }
 
-//estrutura basica pra criação de um nó
+// Estrutura basica pra criação de um nó
 No* CriarNo(int valor){
     No* novo_no = malloc(sizeof(No));
 
-    IniciarValoresNo(novo_no);
     IniciarFolhas(novo_no);
 
     novo_no->valor[0] = valor;
@@ -68,147 +60,109 @@ No* CriarNo(int valor){
     return novo_no;
 }
 
-/*
-     [ 10 , 20 , 30 ]  <-- atual_no
-     /    |    |    \
-   (A)   (B)  (C)   (D)
-    ^     ^    ^     ^
-   f[0] f[1] f[2]  f[3]
-*/
 No* DividirNo(No *atual_no, int* valor_promovido){
-    //aqui eu crio e inicio o nó da direita
+    // Aqui eu crio e inicio o nó da direita
     No* direita = malloc(sizeof(No));
     IniciarFolhas(direita);
 
-    //nesse ponto eu salvo o nó do meio pra subir ele na estrutura
+    // Nesse ponto eu salvo o nó do meio pra subir ele na estrutura
     *valor_promovido = atual_no->valor[1];
 
-    //o nó da direita vai ficar com o maior valor
-    //[0][1][2]
+    // O nó da direita vai ficar com o maior valor
     direita->valor[0] = atual_no->valor[2];
     direita->numero_valores = 1;
 
-    /*
-          [ 10 ] ...sobe 20... [ 30 ] <-- direita
-         /    |                 /    \
-        (A)   (B)              (C)    (D)
-    */
-
-    //se não for folha, metade dos filhos do atual_no passa para o novo nó
+    // Se não for folha, metade dos filhos do atual_no passa para o novo nó
     if(!EhFolha(atual_no)){
-        direita->folha[0] = atual_no->folha[2]; //menor valor a esqueda
-        direita->folha[1] = atual_no->folha[3]; //maior valor a direira
+        direita->filho[0] = atual_no->filho[2]; // Menor valor a esqueda
+        direita->filho[1] = atual_no->filho[3]; // Maior valor a direira
 
-        //O nó atual esquece que teve esses filhos (limpa os ponteiros)
-        atual_no->folha[2] = NULL;
-        atual_no->folha[3] = NULL;
+        // O nó atual esquece que teve esses filhos (limpa os ponteiros)
+        atual_no->filho[2] = NULL;
+        atual_no->filho[3] = NULL;
     }
-
-    //so resta um valor aqui e o resto vira lixo
-    atual_no->valor[1] = -1;
-    atual_no->valor[2] = -1;
 
     atual_no->numero_valores = 1;
 
-    //esse atual_no é reciclado e usamos a sua estrutura para virar o no da esquerda
-    //então retornamos o no da direita
+    // Esse atual_no é reciclado e usamos a sua estrutura para virar o nó da esquerda
+    // Então retornamos o nó da direita
     return direita;
 }
 
 No* Inserir(No* atual_no, int valor, int* valor_promovido){
-    //verificando se chegamos em uma folha
+    // Verificando se chegamos em uma folha
     if(EhFolha(atual_no)){
 
-        //antes de inserir o nosso valor
-        //varremos o vetor buscando duplicidades 
-        for (int j = 0; j < atual_no->numero_valores; j++) 
-        {
+        // Antes de inserir o nosso valor
+        // Varremos o vetor buscando duplicidades 
+        for (int j = 0; j < atual_no->numero_valores; j++){
             if (valor == atual_no->valor[j]){
-                //se for achado, cancelamos o procedimento
+                // Se for achado, cancelamos o procedimento
                 return NULL;
             }
         }
 
-        //aqui eu vou insarir o valor na minha primeira casa com lixo
-        //numero_valores = 1;
-        //  0   1   2
-        //[10][-1][-1] ...
-        //[10][valor][-1]
+        // O valor é inserido no filho mais a direita do nó
         atual_no->valor[atual_no->numero_valores] = valor;
-        //valor incrementado no vetor
+        // Valor incrementado no vetor
         atual_no->numero_valores++;
-        //agoran organizamos esse nó
+        // Agora organizamos esse nó, para que os valores fiquem nas posições certas
         OrdenarNo(atual_no);
 
-        //aqui a gente verifica se a folha ja tem 3 valores
-        //se não, o processo é interropido
+        // Aqui a gente verifica se a folha ja tem 3 valores
+        // Se não, o processo é interropido
         if(atual_no->numero_valores < 3){
             return NULL;
         }
-        //se tiver a gente então segue com o processedimentom de dividir o no
+        // Se tiver, a gente então segue com o procedimento de dividir o nó
         else{
             return DividirNo(atual_no, valor_promovido);
         }
     }
 
 
-    //com esse loop vamos percorrer os valores do meu nó e buscar a folha correta pra enserir o valor
-    //Ex:
-    // i = 0, numero_valores = 2, valor = 25;
-    // [10] [30]
-    //|    |    |
-    //0    1    2 continua...
-
-    // i = 1, numero_valores = 2;
-    // [10] [30]
-    //|    |    |
-    //0    1    2 parou. 25 é menor que 30
-
-    // i = 2, numero_valores = 2;
-    // [10] [30]
-    //|    |    |
-    //0   [25]    2 então ele fica entre o 10 e o 30
+    // Com esse loop vamos percorrer os valores do meu nó e buscar a folha correta pra inserir o valor
     int i = 0;
     while (i < atual_no->numero_valores && valor > atual_no->valor[i])
     {
         i++;
     }
 
-    //verificaçãopra lidar com valores 
+    // Verifica se o índice existe dentro dos valores e se o valor já existe. Caso exista, retorna NULL e evita duplicatas
     if (i < atual_no->numero_valores && valor == atual_no->valor[i]) {
         return NULL; 
     }
 
-    //é aqui que vamos guardar o valor que vai subir
+    // É aqui que guardamos o valor que vai subir
     int promovido_filho;
 
-    //nesse a função pausa e desce um nivel
-    //se for nulo, o filho resolve tudo sem precisar dividir
-    No*novo_filho_direito = Inserir(atual_no->folha[i], valor, &promovido_filho);
+    // Nesse, a função pausa e desce um nivel
+    // Se for nulo, o filho resolve tudo sem precisar dividir
+    No *novo_filho_direito = Inserir(atual_no->filho[i], valor, &promovido_filho);
 
-    //se for um ponteiro, o filho explodiu
+    // Se for um ponteiro, o filho explodiu
     if(novo_filho_direito != NULL){
-        //ele retorn o valor da direita e coloco o filho que subiu de nivel aqui no pai
+        // Ele retorna o valor da direita e coloca o filho que subiu de nivel aqui no pai
         atual_no->valor[atual_no->numero_valores] = promovido_filho;
         atual_no->numero_valores++;
 
-        //e eu ordeno esses valores para que não aja problemas
+        // E ordena esses valores para que não haja problemas
         OrdenarNo(atual_no);
 
-        //aqui eu empurro os valores das folhas pro lado
+        // Aqui eu empurro os valores das folhas pro lado
         for(int j = 3; j > i + 1; j--){
-            atual_no->folha[j] = atual_no->folha[j - 1];
+            atual_no->filho[j] = atual_no->filho[j - 1];
         }
 
-        //pra colocar meu filho no lugar correto pra ele
-        atual_no->folha[i + 1] = novo_filho_direito;
+        // Pra colocar meu filho no lugar correto pra ele
+        atual_no->filho[i + 1] = novo_filho_direito;
 
-        //se o pai tem menos de 2 valores, nada precisa ser feito e vida que segue
+        // Se o pai tem menos de 2 valores, nada precisa ser feito e vida que segue
         if(atual_no->numero_valores < 3){
             return NULL;    
         }
 
-        //se estourou o pai, a gente vai ter que resolver isso
+        // Se estourou o pai, a gente vai ter que resolver isso
         return DividirNo(atual_no, valor_promovido);
     }
 
@@ -216,56 +170,329 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
 }
 
 void Adicionar(int valor){
-    // se a arvore não existe a gente ccria ela
+    // Se a arvore não existe a gente cria ela
     if(cabeca == NULL){
         cabeca = CriarNo(valor);
     }
 
     //
     else{
-        //aqui prosseguimos se a raiz ja existe
+        // Aqui prosseguimos se a raiz já existe
         int valor_promovido;
         No* novo_no = Inserir(cabeca, valor, &valor_promovido);
 
-        //a própria raiz atual transbordou
-        //então criamos uma nova raiz acima da antiga.
+        // A própria raiz atual transbordou
+        // Então criamos uma nova raiz acima da antiga.
         if(novo_no != NULL){
-            //Salvamos a raiz atual
+            // Salvamos a raiz atual
             No* antiga_raiz = cabeca;
 
-            //Criamos uma nova raiz com o valor que subiu (o meio)
+            // Criamos uma nova raiz com o valor que subiu (o meio)
             cabeca = CriarNo(valor_promovido);
 
-            //Conectamos os filhos da nova raiz
-            cabeca->folha[0] = antiga_raiz;
-            cabeca->folha[1] = novo_no;
+            // Conectamos os filhos da nova raiz
+            cabeca->filho[0] = antiga_raiz;
+            cabeca->filho[1] = novo_no;
         }
     }
 }
-void Imprimir(No* n) {
-    if (n == NULL){
+
+No *Buscar(No *no_atual, int valor){
+    // 1. Proteção contra crash (Caso Base de não encontrar)
+    if (no_atual == NULL) {
+        return NULL; // Valor não existe na árvore
+    }
+
+    // 2. Varre os valores dentro do nó
+    for(int i = 0; i < no_atual->numero_valores; i++){
+        // Achou o valor? Retorna o nó atual.
+        if(valor == no_atual->valor[i]){
+            return no_atual;
+        }
+
+        // Se o valor buscado é MENOR que o valor atual do nó,
+        // temos que descer no filho que está logo à esquerda desse valor.
+        if(valor < no_atual->valor[i]){
+            // OBSERVE O 'return' AQUI! Sem ele a recursão não funciona.
+            return Buscar(no_atual->filho[i], valor);
+        }
+    }
+
+    // 3. Se passou pelo loop e não entrou em nenhum 'if', 
+    // significa que o valor é MAIOR que todos os valores deste nó.
+    // Então descemos no último filho disponível.
+    return Buscar(no_atual->filho[no_atual->numero_valores], valor);
+}
+
+void ImprimirBusca(No *no_atual, int valor){
+    No *no_encontrado = Buscar(no_atual, valor);
+
+    if(no_encontrado == NULL){
+        printf("O número não existe na árvore!\n");
+    } else{
+        printf("O número existe na árvore!\n");
+    }
+}
+
+// Remove um valor do vetor e desloca os outros para esquerda
+// Ex: [10, 20] remove indice 0 -> [20]
+void RemoverValorDoNo(No *no, int pos) {
+    for (int i = pos; i < no->numero_valores - 1; i++) {
+        no->valor[i] = no->valor[i + 1];
+    }
+    no->numero_valores--;
+}
+
+// Remove o ponteiro do filho e desloca os outros
+void RemoverFilhoDoNo(No *no, int pos) {
+    for (int i = pos; i < 3; i++) { // Até 3 pois max filhos é 4
+        no->filho[i] = no->filho[i + 1];
+    }
+    no->filho[3] = NULL;
+}
+
+// Busca o maior valor da subárvore (o valor mais à direita possível)
+// Usado para trocar quando removemos um nó interno
+int ObterMaiorValor(No *no) {
+    if (EhFolha(no)) {
+        return no->valor[no->numero_valores - 1];
+    }
+    return ObterMaiorValor(no->filho[no->numero_valores]);
+}
+
+// Função que conserta o "buraco" deixado por um filho vazio (idx_filho)
+void TratarUnderflow(No *pai, int idx) {
+    No *filho_vazio = pai->filho[idx];
+    No *irmao_esq = (idx > 0) ? pai->filho[idx - 1] : NULL;
+    No *irmao_dir = (idx < pai->numero_valores) ? pai->filho[idx + 1] : NULL;
+
+    // CASO 1: Tenta pedir emprestado do irmão da ESQUERDA
+    if (irmao_esq && irmao_esq->numero_valores > 1) {
+        // 1. Abre espaço no filho vazio (move tudo pra direita)
+        for (int i = filho_vazio->numero_valores; i > 0; i--) {
+            filho_vazio->valor[i] = filho_vazio->valor[i - 1];
+        }
+        for (int i = filho_vazio->numero_valores + 1; i > 0; i--) {
+            filho_vazio->filho[i] = filho_vazio->filho[i - 1];
+        }
+        
+        // 2. Desce o valor do pai para o filho vazio
+        filho_vazio->valor[0] = pai->valor[idx - 1];
+        filho_vazio->numero_valores++;
+        
+        // 3. O filho adota o filho mais à direita do irmão (se não for folha)
+        filho_vazio->filho[0] = irmao_esq->filho[irmao_esq->numero_valores];
+
+        // 4. Sobe o maior valor do irmão para o pai
+        pai->valor[idx - 1] = irmao_esq->valor[irmao_esq->numero_valores - 1];
+        
+        // 5. Remove o valor do irmão
+        RemoverValorDoNo(irmao_esq, irmao_esq->numero_valores - 1);
         return;
     }
-    printf("[ ");
-    for(int i=0; i < n->numero_valores; i++){
-        printf("%d ", n->valor[i]);
-    }
-    printf("] ");
-}
-int main(){
-    int valores[] = {10, 20, 30, 40, 50, 60, 70};
-    for(int i=0; i<7; i++) Adicionar(valores[i]);
 
-    printf("Estrutura da Raiz: ");
-    Imprimir(cabeca);
+    // CASO 2: Tenta pedir emprestado do irmão da DIREITA
+    if (irmao_dir && irmao_dir->numero_valores > 1) {
+        // 1. Desce o valor do pai para o final do filho vazio
+        filho_vazio->valor[filho_vazio->numero_valores] = pai->valor[idx];
+        filho_vazio->numero_valores++;
+
+        // 2. O filho adota o primeiro filho do irmão
+        filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[0];
+
+        // 3. Sobe o menor valor do irmão para o pai
+        pai->valor[idx] = irmao_dir->valor[0];
+
+        // 4. Remove o valor do irmão e ajusta filhos
+        RemoverValorDoNo(irmao_dir, 0);
+        RemoverFilhoDoNo(irmao_dir, 0);
+        return;
+    }
+
+    // CASO 3: MERGE (Fusão)
+    // Se ninguém pode emprestar, temos que juntar (Filho Vazio + Pai + Irmão)
+    // Vamos priorizar juntar com o irmão da esquerda
+    if (irmao_esq) {
+        // Desce valor do pai para o irmão da esquerda
+        irmao_esq->valor[irmao_esq->numero_valores] = pai->valor[idx - 1];
+        irmao_esq->numero_valores++;
+
+        // Copia conteudo do filho vazio (se houver sobras) para o irmão
+        // (Nota: como é underflow, geralmente está vazio, mas ponteiros importam)
+        irmao_esq->filho[irmao_esq->numero_valores] = filho_vazio->filho[0];
+        
+        // Remove do pai o valor que desceu e o ponteiro para o filho vazio
+        RemoverValorDoNo(pai, idx - 1);
+        RemoverFilhoDoNo(pai, idx); // O ponteiro idx aponta pro filho vazio
+        
+        free(filho_vazio); // Libera memória
+    } 
+    else if (irmao_dir) {
+        // Mesmo processo, mas fundindo com a direita
+        // A lógica é espelhada: Joga tudo do irmão dir para o filho vazio (que agora cresce)
+        
+        filho_vazio->valor[filho_vazio->numero_valores] = pai->valor[idx];
+        filho_vazio->numero_valores++;
+        
+        // Copia valores do irmão dir
+        for(int i=0; i < irmao_dir->numero_valores; i++){
+            filho_vazio->valor[filho_vazio->numero_valores] = irmao_dir->valor[i];
+            filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[i]; // copia filho esq do valor
+            filho_vazio->numero_valores++;
+        }
+        filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[irmao_dir->numero_valores]; // copia ultimo filho
+        
+        RemoverValorDoNo(pai, idx);
+        RemoverFilhoDoNo(pai, idx + 1); // Remove ponteiro pro irmão dir
+        
+        free(irmao_dir);
+    }
+}
+
+bool RemoverRecursivo(No *no, int valor) {
+    if (no == NULL) return false;
+
+    int idx = 0;
+    // Procura o índice onde o valor está ou deveria estar
+    while (idx < no->numero_valores && valor > no->valor[idx]) {
+        idx++;
+    }
+
+    // --- CENÁRIO A: Encontramos o valor no nó atual ---
+    if (idx < no->numero_valores && valor == no->valor[idx]) {
+        if (EhFolha(no)) {
+            // Se é folha, só remove
+            RemoverValorDoNo(no, idx);
+        } else {
+            // Se não é folha, troca pelo ANTECESSOR (maior da esquerda)
+            int antecessor = ObterMaiorValor(no->filho[idx]);
+            no->valor[idx] = antecessor;
+            // Recursão para ir lá embaixo remover o antecessor original
+            bool underflow = RemoverRecursivo(no->filho[idx], antecessor);
+            if (underflow) TratarUnderflow(no, idx);
+        }
+    } 
+    // --- CENÁRIO B: O valor não está aqui, desce no filho ---
+    else {
+        if (EhFolha(no)) return false; // Valor não existe na árvore
+
+        bool underflow = RemoverRecursivo(no->filho[idx], valor);
+        if (underflow) {
+            TratarUnderflow(no, idx);
+        }
+    }
+
+    // Retorna true se este nó ficou vazio (precisa de ajuda do pai)
+    return (no->numero_valores == 0);
+}
+
+void Remover(int valor) {
+    if (cabeca == NULL) return;
+
+    bool raiz_zerada = RemoverRecursivo(cabeca, valor);
+
+    // Se a raiz ficou vazia após o processo (Underflow na raiz)
+    if (raiz_zerada && cabeca->numero_valores == 0) {
+        No *temp = cabeca;
+        
+        // Se a raiz ainda tem filhos (caso do Merge que puxou a raiz pra baixo),
+        // o primeiro filho vira a nova raiz.
+        if (!EhFolha(cabeca)) {
+            cabeca = cabeca->filho[0];
+        } else {
+            cabeca = NULL; // Árvore ficou vazia
+        }
+        free(temp);
+    }
+}
+
+void EmOrdem(No *no) {
+    if (no == NULL) {
+        return;
+    }
+
+    // Percorre os valores e os filhos intercalados
+    for (int i = 0; i < no->numero_valores; i++) {
+        
+        // 1. Antes de imprimir o valor[i], visita o filho à esquerda dele (filho[i])
+        EmOrdem(no->filho[i]);
+
+        // 2. Agora imprime o valor[i]
+        printf("%d ", no->valor[i]);
+    }
+
+    // 3. Importante: O laço acima visita os filhos 0 e 1 (se houver 2 valores).
+    // Mas ele não visita o ÚLTIMO filho (o da extrema direita).
+    // Temos que visitar o filho restante manualmente.
+    EmOrdem(no->filho[no->numero_valores]);
+}
+
+// 1. Função auxiliar para descobrir a altura (rápida e simples)
+int ObterAltura(No *no) {
+    // Se for nulo ou folha, a altura daqui pra baixo é 0
+    if (no == NULL) return -1;
+    if (EhFolha(no)) return 0;
     
-    printf("\nFilhos da Raiz: ");
-    Imprimir(cabeca->folha[0]);
-    Imprimir(cabeca->folha[1]);
+    // Como a árvore 2-3 é perfeitamente balanceada, 
+    // a altura da esquerda é igual a de qualquer outro filho.
+    return 1 + ObterAltura(no->filho[0]);
+}
+
+// 2. Função que imprime apenas um andar específico
+void ImprimirAndar(No *no, int nivel_atual, int nivel_alvo) {
+    if (no == NULL) return;
+
+    // Se chegamos no andar que queremos imprimir:
+    if (nivel_atual == nivel_alvo) {
+        printf("[ ");
+        for(int i = 0; i < no->numero_valores; i++){
+            printf("%d ", no->valor[i]);
+        }
+        printf("] ");
+    } 
+    // Se ainda não chegamos, continuamos descendo
+    else if (nivel_atual < nivel_alvo) {
+        for (int i = 0; i <= no->numero_valores; i++) {
+            ImprimirAndar(no->filho[i], nivel_atual + 1, nivel_alvo);
+        }
+    }
+}
+
+// 3. A função principal que chama as anteriores
+void PorNivel(No *raiz) {
+    if (raiz == NULL) return;
+
+    int altura = ObterAltura(raiz);
+
+    // Para cada andar (do 0 até a altura máxima), mandamos imprimir
+    for (int i = 0; i <= altura; i++) {
+        printf("\nNivel %d: ", i); // Opcional: Mostra qual é o nível
+        ImprimirAndar(raiz, 0, i);
+    }
+}
+
+int main(){
+    // Reinicia a árvore
+    cabeca = NULL; 
     
-    printf("\nNetos do 60: ");
-    Imprimir(cabeca->folha[1]->folha[0]);
-    Imprimir(cabeca->folha[1]->folha[1]);
+    int valores[] = {80, 40, 120, 20, 60, 100, 140, 15, 10, 50, 30, 90, 70, 150, 130, 110};
+
+    for(int i=0; i<16; i++) {
+        Adicionar(valores[i]);
+    }
+    ImprimirBusca(cabeca, 200);
+
+    Remover(80);
+    Remover(60);
+    Remover(2);
+
+    printf("\n\nLista Ordenada: ");
+    EmOrdem(cabeca);
+    printf("\n");
+
+    printf("\n\nTravessia Por Nivel: \n");
+    PorNivel(cabeca);
+    printf("\n");
     
     return 0;
 }
