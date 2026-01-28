@@ -7,43 +7,10 @@ typedef struct no
 {
     int valor[3]; // Usando um vetor para facilitar a ordenação dos valores, espaço extra pra facilitar o "overflow"
     int numero_valores; // Diz se tem 1 ou 2 valores (ou 3 temporariamente)
-    struct no *filho[4]; // Ponteiros para os filhos
+    struct no *filho[4]; // Ponteiros para os filhos (com espaço para um quarto filho temporário)
 } No;
 
 No *raiz;
-
-// Iniciação basica dos ponteiros do meu no
-void IniciarFolhas(No *atual_no){
-    for(int i = 0; i < 4; i++){
-        atual_no->filho[i] = NULL;
-    }
-}
-
-// Essa função garante que se meus valores estão como [30, 10], eles passem a ser [10, 30]
-// Isso é vital para facilitar a organização da minha árvore
-void OrdenarNo(No *atual_no){
-    int atual, j;
-    // Usamos numero_valores para ordenar apenas o que existe de fato, através do algoritmo Insertion Sort
-    // Garante que não estamos comparando com o lixo das posições vazias
-    // (o lixo sempre fica no fical e a ordenação não chega neles)
-     for(int i = 1; i < atual_no->numero_valores; i++){
-        // Número que está sendo comparado atualmente é salvo na variável "atual"
-        atual = atual_no->valor[i];
-        
-        // j começa com um índice a menos que i e vai sendo reduzida até o índice 0
-        for(j = i - 1; j >= 0; j--){
-            // Se o número atual for menor que um número anterior, o número anterior é gravado 1 índice para frente
-            if(atual < atual_no->valor[j]){
-                atual_no->valor[j+1] = atual_no->valor[j];
-            } else{
-                break;
-            }
-        }
-
-        // A posição posterior ao último j recebe o valor do número atual
-        atual_no->valor[j+1] = atual;
-    }
-}
 
 // Se o primeiro ponteiro for nulo, todos são
 // A Árvore 2-3 sempre vai ser perfeitamente balaceda em altura
@@ -58,9 +25,7 @@ bool EhFolha(No* atual_no) {
 
 // Estrutura basica pra criação de um nó
 No* CriarNo(int valor){
-    No* novo_no = malloc(sizeof(No));
-
-    IniciarFolhas(novo_no);
+    No* novo_no = calloc(1, sizeof(No)); // calloc() é usado para já inicializar o nó como NULL
 
     novo_no->valor[0] = valor;
     novo_no->numero_valores = 1;
@@ -69,11 +34,10 @@ No* CriarNo(int valor){
 }
 
 No* DividirNo(No *atual_no, int* valor_promovido){
-    // Aqui eu crio e inicio o nó da direita
-    No* direita = malloc(sizeof(No));
-    IniciarFolhas(direita);
+    // Aqui o nó da direita é criado e inicializado como NULL
+    No* direita = calloc(1, sizeof(No));
 
-    // Nesse ponto eu salvo o nó do meio pra subir ele na estrutura
+    // Nesse ponto o nó do meio é salvo pra subir ele na estrutura (se tornar o novo pai)
     *valor_promovido = atual_no->valor[1];
 
     // O nó da direita vai ficar com o maior valor
@@ -110,33 +74,42 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
             }
         }
 
-        // O valor é inserido no filho mais a direita do nó
-        atual_no->valor[atual_no->numero_valores] = valor;
-        // Valor incrementado no vetor
-        atual_no->numero_valores++;
-        // Agora organizamos esse nó, para que os valores fiquem nas posições certas
-        OrdenarNo(atual_no);
+        // Aqui começa a lógica para inserir o valor na posição correta (similar ao Insertion Sort)
+        int j = atual_no->numero_valores - 1; // Começa do último valor existente
 
-        // Aqui a gente verifica se a folha ja tem 3 valores
-        // Se não, o processo é interropido
+        // Enquanto não chegar no início E o valor atual for maior que o novo...
+        while (j >= 0 && atual_no->valor[j] > valor) {
+            // ... empurra o valor para a direita
+            atual_no->valor[j + 1] = atual_no->valor[j];
+            j--;
+        }
+
+        // Insere o valor na posição correta
+        atual_no->valor[j + 1] = valor;
+        
+        // Incrementa o contador
+        atual_no->numero_valores++;
+
+        // Aqui verificamos se a folha tem 3 valores
+        // Se não tiver, o processo é interrompido
         if(atual_no->numero_valores < 3){
             return NULL;
         }
-        // Se tiver, a gente então segue com o procedimento de dividir o nó
+        // Se tiver, seguimos com o procedimento de dividir o nó
         else{
             return DividirNo(atual_no, valor_promovido);
         }
     }
 
 
-    // Com esse loop vamos percorrer os valores do meu nó e buscar a folha correta pra inserir o valor
+    // Com esse loop, vamos percorrer os valores do nó e buscar a folha correta pra inserir o valor
     int i = 0;
     while (i < atual_no->numero_valores && valor > atual_no->valor[i])
     {
         i++;
     }
 
-    // Verifica se o índice existe dentro dos valores e se o valor já existe. Caso exista, retorna NULL e evita duplicatas
+    // Verificamos se o índice existe dentro dos valores e se o valor já existe. Caso exista, retorna NULL e evita duplicatas
     if (i < atual_no->numero_valores && valor == atual_no->valor[i]) {
         return NULL; 
     }
@@ -144,34 +117,38 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
     // É aqui que guardamos o valor que vai subir
     int promovido_filho;
 
-    // Nesse, a função pausa e desce um nivel
+    // Aqui a função pausa e desce um nivel
     // Se for nulo, o filho resolve tudo sem precisar dividir
     No *novo_filho_direito = Inserir(atual_no->filho[i], valor, &promovido_filho);
 
     // Se for um ponteiro, o filho explodiu
-    if(novo_filho_direito != NULL){
-        // Ele retorna o valor da direita e coloca o filho que subiu de nivel aqui no pai
-        atual_no->valor[atual_no->numero_valores] = promovido_filho;
-        atual_no->numero_valores++;
-
-        // E ordena esses valores para que não haja problemas
-        OrdenarNo(atual_no);
-
-        // Aqui eu empurro os valores das folhas pro lado
-        for(int j = 3; j > i + 1; j--){
-            atual_no->filho[j] = atual_no->filho[j - 1];
+    if(novo_filho_direito != NULL){  
+        // Empurramos valores e ponteiros para a direita para abrir espaço
+        // Começamos do fim (numero_valores) e vamos voltando até chegar em 'i'
+        for(int k = atual_no->numero_valores; k > i; k--){
+            // Deslocamos o valor
+            atual_no->valor[k] = atual_no->valor[k - 1];
+            
+            // Deslocamos o filho correspondente (note o k+1 para o filho)
+            atual_no->filho[k + 1] = atual_no->filho[k];
         }
 
-        // Pra colocar meu filho no lugar correto pra ele
+        // Colocamos o valor promovido exatamente no índice 'i'
+        atual_no->valor[i] = promovido_filho;
+
+        // Colocamos o novo ponteiro logo à direita do valor inserido
         atual_no->filho[i + 1] = novo_filho_direito;
 
-        // Se o pai tem menos de 2 valores, nada precisa ser feito e vida que segue
+        // Incrementamos o tamanho
+        atual_no->numero_valores++;
+
+        // Se o pai tem menos de 3 valores, retorna NULL
         if(atual_no->numero_valores < 3){
             return NULL;    
+        } else{
+            // Se o pai tem 3 valores, dividimos o nó
+            return DividirNo(atual_no, valor_promovido);
         }
-
-        // Se estourou o pai, a gente vai ter que resolver isso
-        return DividirNo(atual_no, valor_promovido);
     }
 
     return NULL;
@@ -481,7 +458,7 @@ void PorNivel(No *raiz) {
 }
 
 int main(){
-    raiz = NULL; // A raíz começa nula
+    raiz = NULL; // A raiz começa nula
     int escolha; // Variável usada para a escolha no menu
     int valor; // Valor a ser inserido/removido/buscado na árvore
 
@@ -489,9 +466,9 @@ int main(){
         printf("Escolha a operação que você quer fazer\n[1] Inserir\n[2] Remover\n[3] Buscar\n[4] Travessia\n[5] Sair\nResposta: ");
         scanf("%d", &escolha);
 
-        // Caso a raíz seja nula, as únicas operações que o usuario pode realizar são Inserir ou Sair
+        // Caso a raiz seja nula, as únicas operações que o usuario pode realizar são Inserir ou Sair
         if(raiz == NULL && escolha != 1 && escolha != 5){
-            printf("Você precisa inserir uma raíz primeiro!\n");
+            printf("Você precisa inserir uma raiz primeiro!\n");
         } else{
             switch(escolha){
                 case 1:
