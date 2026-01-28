@@ -129,7 +129,7 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
             // Deslocamos o valor
             atual_no->valor[k] = atual_no->valor[k - 1];
             
-            // Deslocamos o filho correspondente (note o k+1 para o filho)
+            // Deslocamos o filho correspondente
             atual_no->filho[k + 1] = atual_no->filho[k];
         }
 
@@ -166,8 +166,7 @@ void Adicionar(int valor){
         int valor_promovido;
         No* novo_no = Inserir(raiz, valor, &valor_promovido);
 
-        // A própria raiz atual transbordou
-        // Então criamos uma nova raiz acima da antiga.
+        // Se a raiz atual transbordou, criamos uma nova raiz acima da antiga.
         if(novo_no != NULL){
             // Salvamos a raiz atual
             No* antiga_raiz = raiz;
@@ -183,29 +182,28 @@ void Adicionar(int valor){
 }
 
 No *Buscar(No *no_atual, int valor){
-    // 1. Proteção contra crash (Caso Base de não encontrar)
+    // Caso o nó atual seja nulo, a árvore foi percorrida mas o valor não foi encontrado
     if (no_atual == NULL) {
-        return NULL; // Valor não existe na árvore
+        return NULL; // Valor não existe na árvore, retorna NULL
     }
 
-    // 2. Varre os valores dentro do nó
+    // Varre os valores dentro do nó
     for(int i = 0; i < no_atual->numero_valores; i++){
-        // Achou o valor? Retorna o nó atual.
+        // Se achou o valor, retorna o nó atual
         if(valor == no_atual->valor[i]){
             return no_atual;
         }
 
         // Se o valor buscado é MENOR que o valor atual do nó,
-        // temos que descer no filho que está logo à esquerda desse valor.
+        // temos que descer no filho que está logo à esquerda desse valor
         if(valor < no_atual->valor[i]){
-            // OBSERVE O 'return' AQUI! Sem ele a recursão não funciona.
             return Buscar(no_atual->filho[i], valor);
         }
     }
 
-    // 3. Se passou pelo loop e não entrou em nenhum 'if', 
-    // significa que o valor é MAIOR que todos os valores deste nó.
-    // Então descemos no último filho disponível.
+    // Se passou pelo loop e não entrou em nenhum 'if', 
+    // significa que o valor é MAIOR que todos os valores deste nó
+    // Então descemos no último filho disponível
     return Buscar(no_atual->filho[no_atual->numero_valores], valor);
 }
 
@@ -391,41 +389,46 @@ void Remover(int valor) {
     }
 }
 
-void EmOrdem(No *no) {
-    if (no == NULL) {
+void EmOrdem(No *no){
+    if (no == NULL){
         return;
     }
 
     // Percorre os valores e os filhos intercalados
-    for (int i = 0; i < no->numero_valores; i++) {
+    for (int i = 0; i < no->numero_valores; i++){
         
-        // 1. Antes de imprimir o valor[i], visita o filho à esquerda dele (filho[i])
+        // Antes de imprimir o valor[i], visita o filho à esquerda dele (filho[i])
         EmOrdem(no->filho[i]);
 
-        // 2. Agora imprime o valor[i]
+        // Agora imprime o valor[i]
         printf("%d ", no->valor[i]);
     }
 
-    // 3. Importante: O laço acima visita os filhos 0 e 1 (se houver 2 valores).
-    // Mas ele não visita o ÚLTIMO filho (o da extrema direita).
-    // Temos que visitar o filho restante manualmente.
+    // O laço não visita o filho mais a direita, então o visitamos manualmente fora do loop
     EmOrdem(no->filho[no->numero_valores]);
 }
 
-// 1. Função auxiliar para descobrir a altura (rápida e simples)
+// Função auxiliar para descobrir a altura através da contagem de arestas
 int ObterAltura(No *no) {
-    // Se for nulo ou folha, a altura daqui pra baixo é 0
-    if (no == NULL) return -1;
-    if (EhFolha(no)) return 0;
+    // Se for nulo retorna -1 (altura será 0)
+    if (no == NULL){
+        return -1;
+    }
+
+    // Se for folha, retorna 0 (altura será 1)
+    if (EhFolha(no)){
+        return 0;
+    }
     
-    // Como a árvore 2-3 é perfeitamente balanceada, 
-    // a altura da esquerda é igual a de qualquer outro filho.
+    // A Árvore 2-3 é perfeitamente balanceada, então vemos apenas a altura do filho à esquerda
     return 1 + ObterAltura(no->filho[0]);
 }
 
-// 2. Função que imprime apenas um andar específico
+// Função que imprime apenas um andar específico
 void ImprimirAndar(No *no, int nivel_atual, int nivel_alvo) {
-    if (no == NULL) return;
+    if (no == NULL){
+        return;
+    }
 
     // Se chegamos no andar que queremos imprimir:
     if (nivel_atual == nivel_alvo) {
@@ -434,8 +437,7 @@ void ImprimirAndar(No *no, int nivel_atual, int nivel_alvo) {
             printf("%d ", no->valor[i]);
         }
         printf("] ");
-    } 
-    // Se ainda não chegamos, continuamos descendo
+    } // Se ainda não chegamos, continuamos descendo
     else if (nivel_atual < nivel_alvo) {
         for (int i = 0; i <= no->numero_valores; i++) {
             ImprimirAndar(no->filho[i], nivel_atual + 1, nivel_alvo);
@@ -443,9 +445,12 @@ void ImprimirAndar(No *no, int nivel_atual, int nivel_alvo) {
     }
 }
 
-// 3. A função principal que chama as anteriores
+// Wrapper para travessia por nível
 void PorNivel(No *raiz) {
-    if (raiz == NULL) return;
+    // Garante que a travessia só é feita se a raiz existe
+    if (raiz == NULL){
+        return;
+    }
 
     int altura = ObterAltura(raiz);
 
