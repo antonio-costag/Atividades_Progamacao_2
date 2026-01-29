@@ -218,9 +218,9 @@ void ImprimirBusca(No *no_atual, int valor){
 }
 
 // Remove um valor do vetor e desloca os outros para esquerda
-// Ex: [10, 20] remove indice 0 -> [20]
 void RemoverValorDoNo(No *no, int pos) {
-    for (int i = pos; i < no->numero_valores - 1; i++) {
+    // "pos" só pode ser 0 ou 1, então o loop ou executa só uma vez ou não executa nenhuma
+    for (int i = pos; i < no->numero_valores - 1; i++){
         no->valor[i] = no->valor[i + 1];
     }
     no->numero_valores--;
@@ -228,10 +228,10 @@ void RemoverValorDoNo(No *no, int pos) {
 
 // Remove o ponteiro do filho e desloca os outros
 void RemoverFilhoDoNo(No *no, int pos) {
-    for (int i = pos; i < 3; i++) { // Até 3 pois max filhos é 4
+    for (int i = pos; i < 3; i++){ // Enquanto i < 3 porque o número máximo de filhos é 4
         no->filho[i] = no->filho[i + 1];
     }
-    no->filho[3] = NULL;
+    no->filho[3] = NULL; // Nenhum nó deve ter um quarto filho, ele é removido aqui
 }
 
 // Busca o maior valor da subárvore (o valor mais à direita possível)
@@ -270,30 +270,33 @@ void TratarUnderflow(No *pai, int idx) {
         filho_vazio->valor[0] = pai->valor[idx - 1];
         filho_vazio->numero_valores++;
         
-        // 3. O filho adota o filho mais à direita do irmão (se não for folha)
+        // 3. O filho_vazio adota o filho mais à direita do irmão esquerdo (se for folha, é NULL)
         filho_vazio->filho[0] = irmao_esq->filho[irmao_esq->numero_valores];
 
-        // 4. Sobe o maior valor do irmão para o pai
+        // 4. Sobe o maior valor do irmão esquerdo para o pai
         pai->valor[idx - 1] = irmao_esq->valor[irmao_esq->numero_valores - 1];
         
-        // 5. Remove o valor do irmão
+        // 5. Remove o valor do irmão esquerdo (aqui já decrementamos irmao_esq->numero_valores)
         RemoverValorDoNo(irmao_esq, irmao_esq->numero_valores - 1);
+
+        // 6. Remove o "filho fantasma" do lado direito (como já decrementamos numero_valores, aqui fazemos +1)
+        irmao_esq->filho[irmao_esq->numero_valores + 1] = NULL;
         return;
     }
 
     // CASO 2: Tenta pedir emprestado do irmão da DIREITA
     if (irmao_dir && irmao_dir->numero_valores > 1) {
-        // 1. Desce o valor do pai para o final do filho vazio
+        // 1. Desce o valor do pai para o final do filho_vazio
         filho_vazio->valor[filho_vazio->numero_valores] = pai->valor[idx];
         filho_vazio->numero_valores++;
 
-        // 2. O filho adota o primeiro filho do irmão
+        // 2. O filho_vazio adota o primeiro filho do irmão direito
         filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[0];
 
-        // 3. Sobe o menor valor do irmão para o pai
+        // 3. Sobe o menor valor do irmão direito para o pai
         pai->valor[idx] = irmao_dir->valor[0];
 
-        // 4. Remove o valor do irmão e ajusta filhos
+        // 4. Remove o valor do irmão direito e ajusta filhos
         RemoverValorDoNo(irmao_dir, 0);
         RemoverFilhoDoNo(irmao_dir, 0);
         return;
@@ -307,13 +310,12 @@ void TratarUnderflow(No *pai, int idx) {
         irmao_esq->valor[irmao_esq->numero_valores] = pai->valor[idx - 1];
         irmao_esq->numero_valores++;
 
-        // Copia conteudo do filho vazio (se houver sobras) para o irmão
-        // (Nota: como é underflow, geralmente está vazio, mas ponteiros importam)
+        // Pega o único filho (caso tenha) de filho_vazio e copia para a direita do irmão esquerdo
         irmao_esq->filho[irmao_esq->numero_valores] = filho_vazio->filho[0];
         
         // Remove do pai o valor que desceu e o ponteiro para o filho vazio
         RemoverValorDoNo(pai, idx - 1);
-        RemoverFilhoDoNo(pai, idx); // O ponteiro idx aponta pro filho vazio
+        RemoverFilhoDoNo(pai, idx); // Remove o ponteiro idx que aponta pro filho vazio
         
         free(filho_vazio); // Libera memória
     } 
@@ -321,19 +323,19 @@ void TratarUnderflow(No *pai, int idx) {
         // Mesmo processo, mas fundindo com a direita
         // A lógica é espelhada: Joga tudo do irmão dir para o filho vazio (que agora cresce)
         
-        filho_vazio->valor[filho_vazio->numero_valores] = pai->valor[idx];
+        filho_vazio->valor[0] = pai->valor[idx];
         filho_vazio->numero_valores++;
         
-        // Copia valores do irmão dir
-        for(int i=0; i < irmao_dir->numero_valores; i++){
-            filho_vazio->valor[filho_vazio->numero_valores] = irmao_dir->valor[i];
-            filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[i]; // copia filho esq do valor
-            filho_vazio->numero_valores++;
-        }
-        filho_vazio->filho[filho_vazio->numero_valores] = irmao_dir->filho[irmao_dir->numero_valores]; // copia ultimo filho
+        // Copia valor do irmão direito       
+        filho_vazio->valor[1] = irmao_dir->valor[0];
+        filho_vazio->numero_valores++;
+
+        // Copia os filhos do irmão direito (se não tiver, é NULL)
+        filho_vazio->filho[1] = irmao_dir->filho[0];
+        filho_vazio->filho[2] = irmao_dir->filho[1];
         
         RemoverValorDoNo(pai, idx);
-        RemoverFilhoDoNo(pai, idx + 1); // Remove ponteiro pro irmão dir
+        RemoverFilhoDoNo(pai, idx + 1); // Remove ponteiro pro irmão direito
         
         free(irmao_dir);
     }
@@ -383,23 +385,25 @@ bool RemoverRecursivo(No *no, int valor){
 }
 
 void Remover(int valor) {
-    if (raiz == NULL){
+    if(raiz == NULL){
         return;
     }
 
     bool raiz_zerada = RemoverRecursivo(raiz, valor);
 
     // Se a raiz ficou vazia após o processo (Underflow na raiz)
-    if (raiz_zerada && raiz->numero_valores == 0) {
+    if(raiz_zerada){
+        // Um ponteiro temporário recebe a raiz vazia
         No *temp = raiz;
         
-        // Se a raiz ainda tem filhos (caso do Merge que puxou a raiz pra baixo),
-        // o primeiro filho vira a nova raiz.
+        // Se a raiz ainda tem um filho (caso do Merge que puxou a raiz pra baixo), o seu único filho vira a nova raiz
         if (!EhFolha(raiz)) {
             raiz = raiz->filho[0];
         } else {
             raiz = NULL; // Árvore ficou vazia
         }
+        
+        // Liberamos a antiga raiz vazia
         free(temp);
     }
 }
