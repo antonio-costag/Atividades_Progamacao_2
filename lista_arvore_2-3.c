@@ -121,7 +121,7 @@ No* Inserir(No* atual_no, int valor, int* valor_promovido){
     // Se for nulo, o filho resolve tudo sem precisar dividir
     No *novo_filho_direito = Inserir(atual_no->filho[i], valor, &promovido_filho);
 
-    // Se for um ponteiro, o filho explodiu
+    // Se for um ponteiro, o filho transbordou
     if(novo_filho_direito != NULL){  
         // Empurramos valores e ponteiros para a direita para abrir espaço
         // Começamos do fim (numero_valores) e vamos voltando até chegar em 'i'
@@ -246,18 +246,25 @@ int ObterMaiorValor(No *no) {
 // Função que conserta o "buraco" deixado por um filho vazio (idx_filho)
 void TratarUnderflow(No *pai, int idx) {
     No *filho_vazio = pai->filho[idx];
-    No *irmao_esq = (idx > 0) ? pai->filho[idx - 1] : NULL;
-    No *irmao_dir = (idx < pai->numero_valores) ? pai->filho[idx + 1] : NULL;
+    No *irmao_esq;
+    No *irmao_dir;
+
+    if(idx > 0){
+        irmao_esq = pai->filho[idx - 1];
+    } else{
+        irmao_esq = NULL;
+    }
+
+    if(idx < pai->numero_valores){
+        irmao_dir = pai->filho[idx + 1];
+    } else{
+        irmao_dir = NULL;
+    }
 
     // CASO 1: Tenta pedir emprestado do irmão da ESQUERDA
     if (irmao_esq && irmao_esq->numero_valores > 1) {
-        // 1. Abre espaço no filho vazio (move tudo pra direita)
-        for (int i = filho_vazio->numero_valores; i > 0; i--) {
-            filho_vazio->valor[i] = filho_vazio->valor[i - 1];
-        }
-        for (int i = filho_vazio->numero_valores + 1; i > 0; i--) {
-            filho_vazio->filho[i] = filho_vazio->filho[i - 1];
-        }
+        // 1. O filho[0] se desloca para direita
+        filho_vazio->filho[1] = filho_vazio->filho[0];
         
         // 2. Desce o valor do pai para o filho vazio
         filho_vazio->valor[0] = pai->valor[idx - 1];
@@ -332,35 +339,41 @@ void TratarUnderflow(No *pai, int idx) {
     }
 }
 
-bool RemoverRecursivo(No *no, int valor) {
-    if (no == NULL) return false;
+bool RemoverRecursivo(No *no, int valor){
+    if(no == NULL){
+        return false;
+    }
 
     int idx = 0;
     // Procura o índice onde o valor está ou deveria estar
-    while (idx < no->numero_valores && valor > no->valor[idx]) {
+    while(idx < no->numero_valores && valor > no->valor[idx]){
         idx++;
     }
 
     // --- CENÁRIO A: Encontramos o valor no nó atual ---
-    if (idx < no->numero_valores && valor == no->valor[idx]) {
-        if (EhFolha(no)) {
+    if(idx < no->numero_valores && valor == no->valor[idx]){
+        if(EhFolha(no)) {
             // Se é folha, só remove
             RemoverValorDoNo(no, idx);
-        } else {
+        } else{
             // Se não é folha, troca pelo ANTECESSOR (maior da esquerda)
             int antecessor = ObterMaiorValor(no->filho[idx]);
             no->valor[idx] = antecessor;
             // Recursão para ir lá embaixo remover o antecessor original
             bool underflow = RemoverRecursivo(no->filho[idx], antecessor);
-            if (underflow) TratarUnderflow(no, idx);
+            if (underflow){
+                TratarUnderflow(no, idx);
+            }
         }
     } 
     // --- CENÁRIO B: O valor não está aqui, desce no filho ---
-    else {
-        if (EhFolha(no)) return false; // Valor não existe na árvore
+    else{
+        if(EhFolha(no)){
+            return false; // Valor não existe na árvore
+        }
 
         bool underflow = RemoverRecursivo(no->filho[idx], valor);
-        if (underflow) {
+        if(underflow){
             TratarUnderflow(no, idx);
         }
     }
@@ -370,7 +383,9 @@ bool RemoverRecursivo(No *no, int valor) {
 }
 
 void Remover(int valor) {
-    if (raiz == NULL) return;
+    if (raiz == NULL){
+        return;
+    }
 
     bool raiz_zerada = RemoverRecursivo(raiz, valor);
 
